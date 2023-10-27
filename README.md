@@ -1,4 +1,4 @@
-# LLJ OpenFAST Study
+# OpenFAST Study of Loads from Low-Level Jets
 Details in de Jong et al., 2023. "Idealized Offshore Low-Level Jets for Turbine
 Structural Impact Considerations." Submitted to Wind Energy, NAWEA/WindTech
 2023 Conference Special Issue. 
