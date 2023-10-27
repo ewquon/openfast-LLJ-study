@@ -1,0 +1,59 @@
+#!/bin/bash -l
+#SBATCH --job-name=llj_openfast_sweep
+#SBATCH --account=awaken
+#SBATCH --time=4:00:00 
+#SBATCH --nodes=1
+#SBATCH --ntasks=36
+#SBATCH --mail-user=eliot.quon@nrel.gov
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+source ~/.bash_profile
+module load gcc/8.4.0
+module load mkl/2020.1.217
+module list
+
+casedays='April5 May15 June3'
+prefix='iea15mw'
+suffix='_classC'
+conditions='mon_veer llj'
+
+dryrun()
+{
+    relpath="$1"
+    fullpath="`pwd`/$relpath"
+    simname="$2"
+
+    cd $fullpath/inflow
+    echo "turbsim `ls $simname.inp`"
+    cd $fullpath
+    echo "openfast `ls $simname.fst`"
+    sleep 2
+}
+
+# 18 hrs x 3 case days x 2 inflow conditions x 6 turbulence realizations
+# = 648 simulations total
+
+for hr in `seq -f '%02g' 0 17`; do
+
+    # 3 case days x 2 conditions x 6 seeds = 36
+    for caseday in $casedays; do
+        for cond in $conditions; do
+            relpath="${caseday}${suffix}/${cond}${suffix}"
+            fullpath="$SLURM_SUBMIT_DIR/$relpath"
+
+            for seed in `seq 0 5`; do
+                simname="${prefix}_${hr}_seed${seed}"
+                ls $fullpath/${simname}.fst
+
+                #dryrun $relpath $simname &
+
+                cd $fullpath
+                openfast ${simname}.fst &> ${simname}.log &
+            done
+
+            #wait #maxprocs == # seeds
+        done # conditions
+    done # casedays
+
+    wait #maxprocs == 3 case days x 2 inflows x 6 realizations = 36
+done # hours
