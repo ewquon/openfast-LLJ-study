@@ -1,0 +1,70 @@
+#!/bin/bash -l
+#SBATCH --job-name=llj_turbsim_sweep
+#SBATCH --account=awaken
+#SBATCH --time=12:00:00 
+#SBATCH --nodes=1
+#SBATCH --ntasks=36
+#SBATCH --mail-user=eliot.quon@nrel.gov
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# There should be a better way to do this...
+#
+# Currently, running turbsim in serial will actually spawn threads on all
+# cores. There is a modest speedup with 36 threads, ~45 s vs ~60 s. The same
+# speedup can be achieved with fewer threads, e.g., 6 threads requested with
+#
+#   srun -n 1 -c 1 --cpu-bind=cores turbsim inputfile
+#
+# The problem is that trying to background multiple instances (with &) doesn't
+# work--the srun instance starts but a new instance of turbsim is not launched
+# until the previous instance finishes.
+#
+# Attempting to naively run `turbsim inputfile &` for more than one turbsim
+# instance will solve the appropriate number of turbsim instances immediately,
+# but it is unclear how the threading works and the performance takes a major
+# hit (e.g., 6 concurrent turbsim processes start but do not finish after ~1
+# hr).
+# 
+# Possible solutions?
+# - Force turbsim to not use multiple threads with some appropriate shell
+#   command.
+# - Recompile turbsim with threading disabled.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+source ~/.bash_profile
+module load gcc/8.4.0
+module load mkl/2020.1.217
+module list
+
+casedays='April5 May15 June3'
+prefix='iea15mw'
+suffix='_classC'
+conditions='mon_veer llj'
+
+# 3 case days x 18 hrs x 2 inflow conditions x 6 turbulence realizations
+# = 648 simulations total
+
+for hr in `seq -f '%02g' 0 17`; do
+
+    # run turbsim with fewer concurrent processes because of the memory reqmt!
+    for caseday in $casedays; do
+        for cond in $conditions; do
+            relpath="${caseday}${suffix}/${cond}${suffix}"
+            fullpath="$SLURM_SUBMIT_DIR/$relpath"
+
+            for seed in `seq 0 5`; do
+                simname="${prefix}_${hr}_seed${seed}"
+                ls $fullpath/inflow/${simname}.inp
+
+                cd $fullpath/inflow
+                turbsim ${simname}.inp &> ${simname}_ts.log
+
+                #n_sim=$((n_sim+1))
+                #if [ `expr $n_sim % $maxprocs` -eq 0 ]; then wait; fi
+            done
+
+            #wait #maxprocs == # seeds
+        done # conditions
+    done # casedays
+done # hours

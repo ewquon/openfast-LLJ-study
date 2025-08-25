@@ -1,0 +1,11 @@
+---------TurbSim v2.00.* Profile Input File------------------------
+{Description}
+-------- User-Defined Profiles (Used only with USR wind profile or USRVKM spectral model) -------------------
+{NumUSRz}       NumUSRz        - Number of Heights
+1.0             StdScale1      - u-component scaling factor for the input standard deviation
+1.0             StdScale2      - v-component scaling factor for the input standard deviation
+1.0             StdScale3      - w-component scaling factor for the input standard deviation
+-----------------------------------------------------------------------------------
+Height    Wind Speed       Wind --Direction--        Standard Deviation    Length Scale
+ (m)        (m/s)       (deg, cntr-clockwise )            (m/s)              (m)
+-----------------------------------------------------------------------------------
